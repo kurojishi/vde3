@@ -28,6 +28,7 @@ Optional build dependencies:
 
 Build steps:
 
+- autoreconf -fi
 - ./configure
 - make
 - make install
