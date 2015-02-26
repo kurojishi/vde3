@@ -67,7 +67,7 @@ int engine_switch_printport(vde_component *component, int port, vde_sobj **out)
   return 0;
 }
 
-/*TODO:this is the function that need to be modified for the STP*/
+//TODO:this is the function that need to be modified for the STP
 int switch_engine_readcb(vde_connection *conn, vde_pkt *pkt, void *arg)
 {
   vde_list *iter;
