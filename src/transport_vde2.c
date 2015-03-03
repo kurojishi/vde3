@@ -61,7 +61,7 @@
 enum request_type { REQ_NEW_CONTROL, REQ_NEW_PORT0 };
 
 // this is request_v3
-typedef struct {
+typedef struct vde2_request {
   uint32_t magic;
   uint32_t version;
   enum request_type type;
@@ -70,13 +70,13 @@ typedef struct {
 } __attribute__((packed)) vde2_request;
 // end of vde2 datasock.c
 
-typedef struct {
+typedef struct vde_pkt {
   unsigned int numtries;
   vde_pkt pkt;
   char data[PKT_DATA_SZ];
 } vde2_pkt;
 
-typedef struct {
+typedef struct vde2_conn {
   int data_fd;
   void *data_ev_rd;
   void *data_ev_wr;
@@ -90,7 +90,7 @@ typedef struct {
   vde_component *transport;
 } vde2_conn;
 
-typedef struct {
+typedef struct vde2_tr {
   char *vdesock_dir;
   int listen_fd;
   void *listen_event;
