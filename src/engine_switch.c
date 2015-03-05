@@ -23,6 +23,7 @@
 #include <vde3/engine.h>
 #include <vde3/context.h>
 #include <vde3/connection.h>
+#include <vde3/common.h>
 
 #include <engine_switch_commands.h>
 
@@ -42,10 +43,10 @@ static vde_signal engine_switch_signals [] = {
 };
 // END temporary signals declaration
 
-
 typedef struct switch_engine {
   vde_component *component;
   vde_list *ports;
+  vde_hash *addresses_hash;
 } switch_engine;
 
 int engine_switch_status(vde_component *component, vde_sobj **out)
@@ -72,20 +73,31 @@ int switch_engine_readcb(vde_connection *conn, vde_pkt *pkt, void *arg)
 {
   vde_list *iter;
   vde_connection *port;
+  //extract the ethrnet header from the packets so we can send it to the correct port
+  struct eth_frame *eth_pkt = (struct eth_frame*)pkt->payload;
 
   switch_engine *netswitch = (switch_engine *)arg;
-
-  /* Send to all the ports */
-  iter = vde_list_first(netswitch->ports);
-  while (iter != NULL) {
-    port = vde_list_get_data(iter);
-    if (port != conn) {
-      // XXX: check write retval
-      vde_connection_write(port, pkt);
-    }
-    iter = vde_list_next(iter);
+  if(vde_hash_lookup(netswitch->addresses_hash, eth_pkt->header.src) == NULL) {
+    vde_hash_insert(netswitch->addresses_hash, eth_pkt->header.src, conn);
   }
-
+  vde_connection *send_port = vde_hash_lookup(netswitch->addresses_hash, eth_pkt->header.dest);
+  if(send_port != NULL) {
+    if(send_port != conn) {
+      vde_connection_write(send_port, pkt);
+      }
+  }
+  else {
+  /* Send to all the ports */
+    iter = vde_list_first(netswitch->ports);
+    while (iter != NULL) {
+      port = vde_list_get_data(iter);
+      if (port != conn) {
+        // XXX: check write retval
+        vde_connection_write(port, pkt);
+      }
+      iter = vde_list_next(iter);
+    }
+  }
   return 0;
 }
 
@@ -188,6 +200,9 @@ static int engine_switch_init(vde_component *component, vde_sobj *params)
   }
 
   vde_component_set_priv(component, (void *)netswitch);
+
+  netswitch->addresses_hash = vde_hash_init();
+
   return 0;
 }
 
@@ -208,6 +223,7 @@ void engine_switch_fini(vde_component *component)
     iter = vde_list_next(iter);
   }
   vde_list_delete(netswitch->ports);
+  vde_hash_delete(netswitch->addresses_hash);
 
   vde_free(netswitch);
 
@@ -230,4 +246,5 @@ vde_module VDE_MODULE_START = {
   .cops = &engine_switch_component_ops,
   .eng_new_conn = &switch_engine_newconn,
 };
+
 
