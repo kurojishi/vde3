@@ -30,6 +30,19 @@
 // from vde_switch/packetq.c
 #define TIMEOUT 5
 #define TIMES 10
+//Spanning tree protocol ports states
+#define BLOCKING_STATUS 0
+#define LISTENING_STATUS 1
+#define LEARNING_STATUS 2
+#define FORWARDING_STATUS 3
+#define DISABLED_STATUS 4
+//Spanning tree protocol ports Roles
+#define DISABLED_ROLE 0
+#define ROOT_ROLE 1
+#define DESIGNATED_ROLE 2
+#define ALTERNATE_ROLE 3
+#define BACKUP_ROLE 4
+
 // end from vde_switch/packetq.c
 
 
@@ -42,6 +55,12 @@ static vde_signal engine_switch_signals [] = {
   { NULL, NULL, NULL, NULL },
 };
 // END temporary signals declaration
+
+typedef struct port {
+  vde_connection *conn;
+  int status;
+  int role;
+} port;
 
 typedef struct switch_engine {
   vde_component *component;
@@ -143,7 +162,11 @@ int switch_engine_newconn(vde_component *component, vde_connection *conn,
 
   // XXX: check ports not NULL
   // XXX: here new port is added as the first one
-  netswitch->ports = vde_list_prepend(netswitch->ports, conn);
+  port new_port;
+  new_port.conn = conn;
+  new_port.status = LEARNING_STATUS;
+  new_port.role = DISABLED_ROLE;
+  netswitch->ports = vde_list_prepend(netswitch->ports, &new_port);
 
   /* Setup connection */
   vde_connection_set_callbacks(conn, &switch_engine_readcb, NULL,
@@ -242,7 +265,7 @@ component_ops engine_switch_component_ops = {
 
 vde_module VDE_MODULE_START = {
   .kind = VDE_ENGINE,
-  .family = "netswitch",
+  .family = "switch",
   .cops = &engine_switch_component_ops,
   .eng_new_conn = &switch_engine_newconn,
 };
