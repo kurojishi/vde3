@@ -67,6 +67,7 @@ typedef GHashTable vde_hash;
 #define vde_hash_size(h) g_hash_table_size(h)
 #define vde_hash_delete(h) g_hash_table_destroy(h)
 #define vde_hash_get_values(h) g_hash_table_get_values(h)
+#define vde_hash_get_keys(h) g_hash_table_get_keys(h)
 
 typedef GQueue vde_queue;
 #define vde_queue_init() g_queue_new()
