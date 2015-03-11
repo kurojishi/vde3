@@ -65,7 +65,7 @@ dist-hook:
 	rm -f $(addprefix $(top_distdir)/,$(WRAPPERS_SRC))
 	rm -f $(addprefix $(top_distdir)/,$(WRAPPERS_HDR))
 
-bin_PROGRAMS = src/vde_hub src/vde_hub2hub
+bin_PROGRAMS = src/vde_hub src/vde_hub2hub src/vde_switch
 
 
 # dynamic modules
@@ -109,6 +109,11 @@ src_vde_hub_LDFLAGS = -levent
 src_vde_hub2hub_SOURCES = src/vde_hub2hub.c src/libevent_handler.c
 src_vde_hub2hub_LDADD = src/libvde.la $(JSONC_LIBS)
 src_vde_hub2hub_LDFLAGS = -levent
+
+# vde_switch
+src_vde_switch_SOURCES = src/vde_switch.c src/libevent_handler.c
+src_vde_switch_LDADD = src/libvde.la $(JSONC_LIBS)
+src_vde_switch_LDFLAGS = -levent
 
 
 if CHECK
