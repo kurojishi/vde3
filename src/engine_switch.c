@@ -64,7 +64,7 @@ typedef struct port {
 
 typedef struct switch_engine {
   vde_component *component;
-  vde_list *ports;
+  vde_hash *ports;
   vde_hash *addresses_hash;
 } switch_engine;
 
@@ -72,7 +72,7 @@ int engine_switch_status(vde_component *component, vde_sobj **out)
 {
   switch_engine *netswitch = vde_component_get_priv(component);
 
-  *out = vde_sobj_new_int(vde_list_length(netswitch->ports));
+  *out = vde_sobj_new_int(vde_hash_size(netswitch->ports));
 
   return 0;
 }
@@ -107,7 +107,7 @@ int switch_engine_readcb(vde_connection *conn, vde_pkt *pkt, void *arg)
   }
   else {
   /* Send to all the ports */
-    iter = vde_list_first(netswitch->ports);
+    iter = vde_hash_get_keys(netswitch->ports);
     while (iter != NULL) {
       port = vde_list_get_data(iter);
       if (port != conn) {
@@ -133,12 +133,12 @@ int switch_engine_errorcb(vde_connection *conn, vde_pkt *pkt,
 
   // XXX: handle different errors, the following is just the fatal case
 
-  netswitch->ports = vde_list_remove(netswitch->ports, conn);
+  vde_hash_remove(netswitch->ports, conn);
 
   info = vde_sobj_new_array();
   // XXX check info not null
   // XXX print new port number instead of the total number of ports in the netswitch
-  vde_sobj_array_add(info, vde_sobj_new_int(vde_list_length(netswitch->ports)));
+  vde_sobj_array_add(info, vde_sobj_new_int(vde_hash_size(netswitch->ports)));
   vde_component_signal_raise(netswitch->component, "port_del", info);
   vde_sobj_put(info);
 
@@ -166,7 +166,7 @@ int switch_engine_newconn(vde_component *component, vde_connection *conn,
   new_port.conn = conn;
   new_port.status = LEARNING_STATUS;
   new_port.role = DISABLED_ROLE;
-  netswitch->ports = vde_list_prepend(netswitch->ports, &new_port);
+  vde_hash_insert(netswitch->ports, conn, &new_port);
 
   /* Setup connection */
   vde_connection_set_callbacks(conn, &switch_engine_readcb, NULL,
@@ -179,7 +179,7 @@ int switch_engine_newconn(vde_component *component, vde_connection *conn,
   info = vde_sobj_new_array();
   // XXX check info not null
   // XXX print new port number instead of the total number of ports in the netswitch
-  vde_sobj_array_add(info, vde_sobj_new_int(vde_list_length(netswitch->ports)));
+  vde_sobj_array_add(info, vde_sobj_new_int(vde_hash_size(netswitch->ports)));
   vde_component_signal_raise(component, "port_new", info);
   vde_sobj_put(info);
 
@@ -236,7 +236,7 @@ void engine_switch_fini(vde_component *component)
   vde_connection *port;
   switch_engine *netswitch = (switch_engine *)vde_component_get_priv(component);
 
-  iter = vde_list_first(netswitch->ports);
+  iter = vde_hash_get_values(netswitch->ports);
   while (iter != NULL) {
     port = vde_list_get_data(iter);
     // XXX check if this is safe here
@@ -245,7 +245,7 @@ void engine_switch_fini(vde_component *component)
 
     iter = vde_list_next(iter);
   }
-  vde_list_delete(netswitch->ports);
+  vde_hash_delete(netswitch->ports);
   vde_hash_delete(netswitch->addresses_hash);
 
   vde_free(netswitch);
